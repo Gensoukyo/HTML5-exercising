@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>canvas api</title>
+</head>
+<body>
+	<canvas id="diagonal" width="400" height="400" style="border: 1px solid">
+	</canvas>
+	<script>
+		var R=100,
+			r=100*Math.sin(Math.PI/10)/Math.cos(Math.PI/5),
+			yDegree=0;
+		var canvas=document.getElementById('diagonal');
+		var ctx=canvas.getContext('2d');
+		function OuPentagramXcoord(R, k, yDegree) {
+			return parseInt(R * Math.cos((90 + k * 72 + yDegree) * Math.PI/180));
+		}
+		function OuPentagramYcoord(R, k, yDegree) {
+			return parseInt(R * Math.sin((90 + k * 72 + yDegree) * Math.PI/180));
+		}
+		function ItPentagramXcoord(r, k, yDegree) {
+			return parseInt(r * Math.cos((90 + 36 +k * 72 + yDegree) * Math.PI/180));
+		}
+		function ItPentagramYcoord(r, k, yDegree) {
+			return parseInt(r * Math.sin((90 + 36 +k * 72 + yDegree) * Math.PI/180));
+		}
+		//长短轴，顶点序号，主轴偏离y轴角度
+		function drawDiagonal() {
+			//ctx.save();
+			ctx.translate(200,200);
+			ctx.beginPath();
+			ctx.moveTo(OuPentagramXcoord(R,0,yDegree),OuPentagramYcoord(R,0,yDegree));
+			/*
+			注意：当前路径为空，即调用beginPath()之后，或者canvas刚建的时候，第一条路径构造命令通常被视为是moveTo（），无论实际上是什么。出于这个原因，你几乎总是要在设置路径之后专门指定你的起始位置。*/
+			for (var i = 0; i < 5; i++) {
+				ctx.lineTo(OuPentagramXcoord(R,i,yDegree),OuPentagramYcoord(R,i,yDegree));
+				ctx.lineTo(ItPentagramXcoord(r,i,yDegree),ItPentagramYcoord(r,i,yDegree));
+			}
+			ctx.closePath();
+			ctx.stroke();
+		}
+		/*
+		function test() {
+			ctx.beginPath();
+			ctx.translate(200,200);
+			ctx.arc(0,0,50,0,Math.PI);
+			ctx.arc(0,0,40,Math.PI,0);
+			ctx.closePath();
+			ctx.stroke();
+		}*/
+		window.addEventListener('load',drawDiagonal,true);
+	</script>
+</body>
+</html>
