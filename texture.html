@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>纹理</title>
+</head>
+<body>
+	<img id="pic" src="./img/ikun.jpg" alt="ikun" style="display: none;">
+    <canvas id="webgl" width="400" height="400"></canvas>
+    <script>
+    	const webgl = document.getElementById('webgl');
+    	const gl = webgl.getContext('webgl');
+    	if (!gl) {
+    	    alert("Unable to initialize WebGL. Your browser or machine may not support it.");
+    	}
+    	gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    	gl.clear(gl.COLOR_BUFFER_BIT);
+
+    	const Coords = {
+    	    pointCoords:[
+    	        [-0.5,0.5],
+    	        [-0.5,-0.5],
+    	        [0.5,0.5],
+    	        [0.5,-0.5]
+    	    ],
+    	    texCoords:[
+    	        [0.0,1.0],
+    	        [0.0,0.0],
+    	        [1.0,1.0],
+    	        [1.0,0.0]
+    	    ]
+    	}
+
+
+    	const vShaderSource = `
+    			attribute vec4 aPosition;
+    	        attribute vec2 aTexCoord;
+
+    	        varying highp vec2 vTextureCoord;
+
+    			void main(){
+    			    gl_Position = aPosition;
+    	            vTextureCoord = aTexCoord;
+    			}
+    		`;
+    	const fShaderSouce = `
+    	        precision mediump float;
+    	        uniform sampler2D uSampler;
+    			varying highp vec2 vTextureCoord;
+
+    			void main(){
+    				gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    			}
+    		`;
+
+    	/**
+    	 * 创建指定类型的着色器，上传source源码并编译
+    	 */
+    	function loadShader(gl, type, source) {
+    	    const shader = gl.createShader(type); // 创建一个新的着色器
+    	    gl.shaderSource(shader, source); // 将源代码发送到着色器
+    	    gl.compileShader(shader); // 编译源代码
+
+    	    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    	        alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+    	        gl.deleteShader(shader);
+    	        return null;
+    	    }
+    	    return shader;
+    	}
+    	/**
+    	 * 初始化着色器程序，让WebGL知道如何绘制我们的数据
+    	 */
+    	function initShaderProgram(gl, vShaderSource, fShaderSouce) {
+    	    const vShader = loadShader(gl, gl.VERTEX_SHADER, vShaderSource);
+    	    const fShader = loadShader(gl, gl.FRAGMENT_SHADER, fShaderSouce);
+
+    	    const shaderProgram = gl.createProgram(); // 创建着色器程序
+    	    gl.attachShader(shaderProgram, vShader);
+    	    gl.attachShader(shaderProgram, fShader);
+    	    gl.linkProgram(shaderProgram);
+
+    	    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+    	        alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+    	        return null;
+    	    }
+    	    return shaderProgram;
+    	}
+    	/**
+    	 * 创建纹理对象
+    	 */
+    	function initTextures(gl, n, image) {
+    	    if (!image) {
+    	        return console.error('Cannot get Image!');
+    	    }
+    	    console.log(image);
+
+    	    const texture = gl.createTexture();
+    	    const uSampler = programInfo.uniformLocations.uSampler;
+    	    // gl.pixelStorei(gl.UNPACK_FILP_Y_WEBGL,1);   //对图像进行y轴翻转处理
+    	    gl.activeTexture(gl.TEXTURE0);  //开启0号单元
+    	    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    	    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    	    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);  //配置纹理图像
+    	    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    	    // gl.generateMipmap(gl.TEXTURE_2D);
+    	    gl.uniform1i(uSampler, 0);
+    	}
+
+    	function initBuffers(gl, coords, n) {
+    	    console.log(coords,n);
+
+    	    let verticesTexCoords = new Float32Array(coords);
+    	    const FSIZE = verticesTexCoords.BYTES_PER_ELEMENT;
+
+    	    verticesTexCoordsBuffer = gl.createBuffer(); // 创建缓冲区对象
+    	    gl.bindBuffer(gl.ARRAY_BUFFER, verticesTexCoordsBuffer); // 将缓冲区对象绑定目标
+    	    gl.bufferData(gl.ARRAY_BUFFER, verticesTexCoords, gl.STATIC_DRAW);   // 向缓冲区填充数据
+
+    	    gl.vertexAttribPointer(programInfo.attribLocations.aPosition, 2, gl.FLOAT, false, 0, 0);
+    	    gl.enableVertexAttribArray(programInfo.attribLocations.aPosition);
+    	    gl.vertexAttribPointer(programInfo.attribLocations.aTexCoord, 2, gl.FLOAT, false, 0, 2*n*FSIZE);
+    	    gl.enableVertexAttribArray(programInfo.attribLocations.aTexCoord);
+    	}
+
+    	const shaderProgram = initShaderProgram(gl, vShaderSource, fShaderSouce);
+    	gl.useProgram(shaderProgram);
+    	const programInfo = {
+    	    program: shaderProgram,
+    	    attribLocations: {
+    	        aPosition: gl.getAttribLocation(shaderProgram, 'aPosition'),
+    	        aTexCoord: gl.getAttribLocation(shaderProgram, 'aTexCoord')
+    	    },
+    	    uniformLocations: {
+    	        uFragColor: gl.getUniformLocation(shaderProgram, 'uFragColor'),
+    	        uSampler: gl.getUniformLocation(shaderProgram, 'uSampler')
+    	    }
+    	};
+    	const flatCoords = Object.values(Coords).flat(Infinity);
+    	const N = Object.values(Coords).flat(1).length/Object.keys(Coords).length;
+    	const image = document.getElementById('pic');
+    	initBuffers(gl, flatCoords, N);
+    	initTextures(gl, N, image);
+    	gl.drawArrays(gl.TRIANGLE_STRIP, 0, N);
+    </script>
+</body>
+</html>
